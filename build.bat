@@ -1,0 +1,1 @@
+g++ -static -static-libgcc -static-libstdc++ src/main.cpp external/src/glad.c -Iexternal/include -Lexternal/lib -lglfw3 -lgdi32 -o bin/build.exe
