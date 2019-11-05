@@ -9,24 +9,34 @@
 
 #include <Windows.h>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
-bool readFile(std::string path, std::string& content, bool absolutePath = false);
+#include "Mantaray/Graphics/Shader.h"
+#include "Mantaray/Core/FileSystem.h"
+#include "Mantaray/Core/Logger.h"
+#include "Mantaray/Core/Math.h"
 
-const unsigned int SCR_WIDTH = 600;
-const unsigned int SCR_HEIGHT = 600;
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow *window, float deltaTime);
+
+unsigned int SCR_WIDTH = 750;
+unsigned int SCR_HEIGHT = 750;
+MR::Vector2d cursor_pos;
+MR::Logger logger("Application");
 
 int main()
 {
+    logger.Log("Initializing GLFW context...");
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL", NULL, NULL);
     if (window == NULL)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        logger.Log("Failed to create GLFW window", MR::Logger::LOG_ERROR);
         glfwTerminate();
         return -1;
     }
@@ -35,62 +45,37 @@ int main()
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        logger.Log("Failed to initialize GLAD", MR::Logger::LOG_ERROR);
         return -1;
     }
 
-    // create shaders
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-
+    logger.Log("Compiling shaders...");
+    // compile shaders
     std::string vertexShaderContent;
-    readFile("Content/vertex.vert", vertexShaderContent);
+    MR::FileSystem::readFile("Content/vertex.vert", vertexShaderContent);
     const char* vertexSrc = vertexShaderContent.c_str();
-    glShaderSource(vertexShader, 1, &vertexSrc, NULL);
-    glCompileShader(vertexShader);
-    int  success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-        return -1;
-    }
 
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    unsigned int vertexShader;
+    vertexShader = MR::Shader::compileShader(MR::Shader::VERTEX_SHADER, vertexSrc);
 
     std::string fragmentShaderContent;
-    readFile("Content/fragment.frag", fragmentShaderContent);
+    MR::FileSystem::readFile("Content/fragment.frag", fragmentShaderContent);
     const char* fragmentSrc = fragmentShaderContent.c_str();
-    glShaderSource(fragmentShader, 1, &fragmentSrc, NULL);
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-        return -1;
-    }
+    
+    unsigned int fragmentShader;
+    fragmentShader = MR::Shader::compileShader(MR::Shader::FRAGMENT_SHADER, fragmentSrc);
 
-    // compile shaders
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if(!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::LINKING_FAILED\n" << infoLog << std::endl;
-        return -1;
-    }
+    logger.Log("Linking shaders...");
+    // link shaders
+    unsigned int shaderProgram = MR::Shader::linkShader(vertexShader, fragmentShader);
     glUseProgram(shaderProgram);
 
     int u_time = glGetUniformLocation(shaderProgram, "u_time");
     glUniform1f(u_time, 0.0f);
+    int u_mPos = glGetUniformLocation(shaderProgram, "u_mPos");
+    glUniform2f(u_mPos, 0.0f, 0.0f);
 
+    logger.Log("Creating Mesh...");
     // Create triangles
     float vertices[] = {
         -1.0f, 1.0f,
@@ -110,25 +95,56 @@ int main()
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    float elapsed_time = 0.0f;
+    logger.Log("Loading Texture...");
+    stbi_set_flip_vertically_on_load(true);
+    int width, height, nrChannels;
+    std::string image_path = MR::FileSystem::getWorkingDirectory() + "Content/earth.png";
+    unsigned char *data = stbi_load(image_path.c_str(), &width, &height, &nrChannels, 0);
+    if (!data) {
+        logger.Log("Image from " + image_path + " could not be loaded", MR::Logger::LOG_ERROR);
+        return -1;
+    }
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    stbi_image_free(data);
 
+    float elapsed_time = 0.0f;
+    float delta_time = 0.0f;
+
+    logger.Log("Starting Loop...");
     while (!glfwWindowShouldClose(window))
     {
         std::clock_t beginFrame = clock();
-        processInput(window);
-
+        processInput(window, delta_time);
+        
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
 
         glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float) / 2);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
         std::clock_t endFrame = clock();
-        elapsed_time += (endFrame - beginFrame) / 1000.0f;
+        delta_time = (endFrame - beginFrame) / 1000.0f;
+        elapsed_time += delta_time;
         glUniform1f(u_time, elapsed_time);
+        glUniform2f(
+            u_mPos, 
+            (float)((cursor_pos.x / SCR_WIDTH - 0.5) * 2.0), 
+            -(float)((cursor_pos.y / SCR_HEIGHT - 0.5) * 2.0)
+        );
     }
 
+    logger.Log("Shutting down application...");
     // delete opengl objects
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
@@ -138,7 +154,7 @@ int main()
     return 0;
 }
 
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow *window, float deltaTime)
 {
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -146,34 +162,14 @@ void processInput(GLFWwindow *window)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    glfwGetCursorPos(window, &cursor_pos.x, &cursor_pos.y);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    glViewport(0, 0, width, height);
-}
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
 
-bool readFile(std::string path, std::string& content, bool absolutePath) {
-    if (!absolutePath){
-        char result[MAX_PATH];
-        GetModuleFileName(NULL, result, MAX_PATH);
-        std::string wd = "";
-        for (int i = 0; i < MAX_PATH; i++){
-            wd += result[i];
-            if (result[i] == '\0'){
-                break;
-            }
-        }
-        wd = wd.substr(0, wd.find_last_of("\\/") + 1);
-        path = wd + path;
-    }
-    std::ifstream t(path.c_str());
-    if (!t){
-        std::cout << "Could not open file: " << path << std::endl;
-        return false;
-    }
-    std::string readContent((std::istreambuf_iterator<char>(t)),
-                            std::istreambuf_iterator<char>());
-    content = readContent;
-    return true;
+    glViewport(0, 0, width, height);
 }
