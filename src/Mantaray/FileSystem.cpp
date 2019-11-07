@@ -6,6 +6,9 @@
 #include "Mantaray/Core/FileSystem.h"
 #include "Mantaray/Core/Logger.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 using namespace MR;
 
 std::string FileSystem::getWorkingDirectory() {
@@ -36,4 +39,21 @@ bool FileSystem::readFile(std::string path, std::string& content, bool absoluteP
     content = std::string((std::istreambuf_iterator<char>(t)),
                             std::istreambuf_iterator<char>());
     return true;
+}
+
+bool FileSystem::loadImage(std::string path, unsigned char*& data, int& width, int& height, int& nrChannels, bool absolutePath) {
+    if (!absolutePath) {
+        path = FileSystem::getWorkingDirectory() + path;
+    }
+
+    data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+    if (!data) {
+        Logger::Log("FileSystem", "Image from " + path + " could not be loaded", MR::Logger::LOG_ERROR);
+        return false;
+    }
+    return true;
+}
+
+void FileSystem::unloadImage(unsigned char*& data) {
+    stbi_image_free(data);
 }

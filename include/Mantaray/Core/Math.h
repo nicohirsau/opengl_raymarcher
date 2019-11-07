@@ -1,21 +1,13 @@
-namespace MR {
-class Vector2f {
-    public:
-        Vector2f() {}
-        Vector2f(float x, float y) {
-            this->x = x;
-            this->y = y;
-        }
-        float x, y = 0.0f;
-};
+#include <math.h>
 
-class Vector2d {
-    public:
-        Vector2d() {}
-        Vector2d(double x, double y) {
-            this->x = x;
-            this->y = y;
-        }
-        double x, y = 0.0f;
-};
+#include "Mantaray/Core/Vector.h"
+
+namespace MR {
+    float clamp(float value, float min, float max) {
+        if (value < min)
+            return min;
+        if (value > max)
+            return max;
+        return value;
+    }
 }
