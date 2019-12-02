@@ -1,4 +1,5 @@
 #pragma once
+
 namespace MR {
 class Vector2f {
     public:
@@ -72,18 +73,6 @@ class Vector3f {
 
         Vector3f operator*(float b) {
             return Vector3f(this->x * b, this->y * b, this->y * b);
-        }
-
-        void rotateAroundX(float angle) {
-            this->x = this->x;
-            this->y = this->y * cos(angle) - this->z * sin(angle);
-            this->z = this->y * sin(angle) + this->z * cos(angle);
-        }
-
-        void rotateAroundY(float angle) {
-            this->x = this->x * cos(angle) + this->z * sin(angle);
-            this->y = this->y;
-            this->z = -this->x * sin(angle) + this->z * cos(angle);
         }
 };
 }

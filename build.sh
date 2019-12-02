@@ -1,1 +1,1 @@
-g++ -static -static-libgcc -static-libstdc++ -std=c++11 src/main.cpp src/Mantaray/Shader.cpp src/Mantaray/FileSystem.cpp src/Mantaray/Logger.cpp external/lib/glad.a -Iinclude -Iexternal/include -Lexternal/lib -lglfw3 -lgdi32 -o bin/build.exe
+g++ -static -static-libgcc -static-libstdc++ -std=c++17 src/main.cpp src/Mantaray/Shader.cpp src/Mantaray/FileSystem.cpp src/Mantaray/Logger.cpp src/Mantaray/Mesh.cpp src/Mantaray/InputManager.cpp external/lib/glad.a -Iinclude -Iexternal/include -Lexternal/lib -lglfw3 -lgdi32 -o bin/build.exe

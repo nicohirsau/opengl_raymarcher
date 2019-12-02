@@ -7,6 +7,7 @@
 #include <streambuf>
 #include <ctime>
 #include <algorithm>
+#include <vector>
 
 #include <Windows.h>
 
@@ -15,12 +16,14 @@
 #include "Mantaray/Core/Logger.h"
 #include "Mantaray/Core/Vector.h"
 #include "Mantaray/Core/Math.h"
+#include "Mantaray/Core/Mesh.h"
+#include "Mantaray/Core/InputManager.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window, float deltaTime);
 
-unsigned int SCR_WIDTH = 750;
-unsigned int SCR_HEIGHT = 750;
+unsigned int SCR_WIDTH = 1024;
+unsigned int SCR_HEIGHT = 1024;
 MR::Vector2d cursor_pos;
 MR::Vector2d lcursor_pos;
 MR::Vector3f player_pos;
@@ -30,12 +33,16 @@ MR::Logger logger("Application");
 
 int main()
 {
+    //std::cout << sizeof(float) << std::endl;
+    //std::cout << sizeof(MR::Vector2f) << std::endl;
+    //return 0;
     logger.Log("Initializing GLFW context...");
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    //GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL", NULL, NULL);
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL", NULL, NULL);
     if (window == NULL)
     {
@@ -52,6 +59,8 @@ int main()
         return -1;
     }
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    MR::InputManager::setWindowHandle(window);
 
     logger.Log("Compiling shaders...");
     // compile shaders
@@ -88,23 +97,20 @@ int main()
 
     logger.Log("Creating Mesh...");
     // Create triangles
-    float vertices[] = {
-        -1.0f, 1.0f,
-        -1.0f, -1.0f,
-        1.0f, 1.0f,
-        1.0f, 1.0f,
-        -1.0f, -1.0f,
-        1.0f, -1.0f
-    };
-    unsigned int VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    MR::Mesh screenMesh = MR::Mesh();
+
+    std::vector<MR::Vector2f> vertices {
+        MR::Vector2f(-1.0f, 1.0f),
+        MR::Vector2f(-1.0f, -1.0f),
+        MR::Vector2f(1.0f, 1.0f),
+        MR::Vector2f(1.0f, 1.0f),
+        MR::Vector2f(-1.0f, -1.0f),
+        MR::Vector2f(1.0f, -1.0f),
+    };
+
+    screenMesh.addVertices(vertices);
+    screenMesh.uploadMeshData();
 
     logger.Log("Loading Texture...");
     int width, height, nrChannels;
@@ -140,7 +146,7 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float) / 2);
+        screenMesh.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -159,8 +165,6 @@ int main()
 
     logger.Log("Shutting down application...");
     // delete opengl objects
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
     glfwTerminate();
@@ -169,14 +173,14 @@ int main()
 
 void processInput(GLFWwindow *window, float deltaTime)
 {
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_ESCAPE))
         glfwSetWindowShouldClose(window, true);
-    if(glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_0))
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    glfwGetCursorPos(window, &cursor_pos.x, &cursor_pos.y);
+    MR::InputManager::getMousePosition(cursor_pos);
     if (!(cursor_pos == lcursor_pos)) {
         MR::Vector2d delta_mPos = cursor_pos - lcursor_pos;
         player_rot = player_rot + MR::Vector2f(
@@ -186,17 +190,17 @@ void processInput(GLFWwindow *window, float deltaTime)
         lcursor_pos = cursor_pos;
     }
 
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_W))
         player_pos.z += player_speed * deltaTime;
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_S))
         player_pos.z -= player_speed * deltaTime;
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_A))
         player_pos.x -= player_speed * deltaTime;
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_D))
         player_pos.x += player_speed * deltaTime;
-    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_Q))
         player_pos.y -= player_speed * deltaTime;
-    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    if (MR::InputManager::getKey(GLFW_KEY_E))
         player_pos.y += player_speed * deltaTime;
 }
 
