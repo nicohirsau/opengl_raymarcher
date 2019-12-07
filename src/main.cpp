@@ -18,12 +18,13 @@
 #include "Mantaray/Core/Math.h"
 #include "Mantaray/Core/Mesh.h"
 #include "Mantaray/Core/InputManager.h"
+#include "Mantaray/Core/KeyCodes.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window, float deltaTime);
 
-unsigned int SCR_WIDTH = 1024;
-unsigned int SCR_HEIGHT = 1024;
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 800;
 MR::Vector2d cursor_pos;
 MR::Vector2d lcursor_pos;
 MR::Vector3f player_pos;
@@ -33,9 +34,6 @@ MR::Logger logger("Application");
 
 int main()
 {
-    //std::cout << sizeof(float) << std::endl;
-    //std::cout << sizeof(MR::Vector2f) << std::endl;
-    //return 0;
     logger.Log("Initializing GLFW context...");
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -61,39 +59,12 @@ int main()
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     MR::InputManager::setWindowHandle(window);
+    MR::InputManager::addKeyToWatch(MR_KEY_0);
 
-    logger.Log("Compiling shaders...");
-    // compile shaders
-    std::string vertexShaderContent;
-    MR::FileSystem::readFile("Content/vertex.vert", vertexShaderContent);
-    const char* vertexSrc = vertexShaderContent.c_str();
-
-    unsigned int vertexShader;
-    vertexShader = MR::Shader::compileShader(MR::Shader::VERTEX_SHADER, vertexSrc);
-
-    std::string fragmentShaderContent;
-    MR::FileSystem::readFile("Content/fragment.frag", fragmentShaderContent);
-    const char* fragmentSrc = fragmentShaderContent.c_str();
-    
-    unsigned int fragmentShader;
-    fragmentShader = MR::Shader::compileShader(MR::Shader::FRAGMENT_SHADER, fragmentSrc);
-
-    logger.Log("Linking shaders...");
-    // link shaders
-    unsigned int shaderProgram = MR::Shader::linkShader(vertexShader, fragmentShader);
-    glUseProgram(shaderProgram);
-
-    int u_time = glGetUniformLocation(shaderProgram, "u_time");
-    glUniform1f(u_time, 0.0f);
-    int u_mPos = glGetUniformLocation(shaderProgram, "u_mPos");
-    glUniform2f(u_mPos, 0.0f, 0.0f);
-    int u_pPos = glGetUniformLocation(shaderProgram, "u_pPos");
-    glUniform3f(u_pPos, player_pos.x, player_pos.y, player_pos.z);
-    
-    glfwGetCursorPos(window, &cursor_pos.x, &cursor_pos.y);
-    glfwGetCursorPos(window, &lcursor_pos.x, &lcursor_pos.y);
-    int u_pRot = glGetUniformLocation(shaderProgram, "u_pRot");
-    glUniform2f(u_pRot, player_rot.x, player_rot.y);
+    logger.Log("Creating shaders...");
+    // create shader
+    MR::Shader raymarchingShader = MR::Shader(std::string("Content/vertex.vert"), std::string("Content/fragment.frag"));
+    raymarchingShader.activate();
 
     logger.Log("Creating Mesh...");
     // Create triangles
@@ -115,12 +86,9 @@ int main()
     logger.Log("Loading Texture...");
     int width, height, nrChannels;
     std::string image_path = MR::FileSystem::getWorkingDirectory() + "Content/earth.png";
-    unsigned char *data; // = stbi_load(image_path.c_str(), &width, &height, &nrChannels, 0);
+    unsigned char *data;
     MR::FileSystem::loadImage("Content/earth.png", data, width, height, nrChannels);
-    //if (!data) {
-    //    logger.Log("Image from " + image_path + " could not be loaded", MR::Logger::LOG_ERROR);
-    //    return -1;
-    //}
+    
     unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -131,13 +99,14 @@ int main()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     MR::FileSystem::unloadImage(data);
 
-    float elapsed_time = 0.0f;
+    float elapsed_time = 0.0f; // In seconds
     float delta_time = 0.0f;
 
     logger.Log("Starting Loop...");
     while (!glfwWindowShouldClose(window))
     {
         std::clock_t beginFrame = clock();
+        MR::InputManager::update(delta_time);
         processInput(window, delta_time);
         
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -146,39 +115,36 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
-        screenMesh.draw();
+        screenMesh.draw();  
 
         glfwSwapBuffers(window);
         glfwPollEvents();
         std::clock_t endFrame = clock();
         delta_time = (endFrame - beginFrame) / 1000.0f;
         elapsed_time += delta_time;
-        glUniform1f(u_time, elapsed_time);
-        glUniform2f(
-            u_mPos, 
-            (float)((cursor_pos.x / SCR_WIDTH - 0.5) * 2.0), 
-            -(float)((cursor_pos.y / SCR_HEIGHT - 0.5) * 2.0)
-        );
-        glUniform3f(u_pPos, player_pos.x, player_pos.y, player_pos.z);
-        glUniform2f(u_pRot, player_rot.x, player_rot.y);
+
+        raymarchingShader.setUniformVector3f("u_pPos", player_pos);
+        raymarchingShader.setUniformVector2f("u_pRot", player_rot);
     }
 
     logger.Log("Shutting down application...");
-    // delete opengl objects
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
     glfwTerminate();
     return 0;
 }
 
 void processInput(GLFWwindow *window, float deltaTime)
 {
-    if (MR::InputManager::getKey(GLFW_KEY_ESCAPE))
+    if (MR::InputManager::getKey(MR_KEY_ESCAPE))
         glfwSetWindowShouldClose(window, true);
-    if (MR::InputManager::getKey(GLFW_KEY_0))
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    else
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    if (MR::InputManager::getKeyDown(MR_KEY_0)) {
+        int polygonMode;
+        glGetIntegerv(GL_POLYGON_MODE, &polygonMode);
+        if (polygonMode == GL_LINE)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        else if (polygonMode == GL_FILL)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
 
     MR::InputManager::getMousePosition(cursor_pos);
     if (!(cursor_pos == lcursor_pos)) {
@@ -190,17 +156,17 @@ void processInput(GLFWwindow *window, float deltaTime)
         lcursor_pos = cursor_pos;
     }
 
-    if (MR::InputManager::getKey(GLFW_KEY_W))
+    if (MR::InputManager::getKey(MR_KEY_W))
         player_pos.z += player_speed * deltaTime;
-    if (MR::InputManager::getKey(GLFW_KEY_S))
+    if (MR::InputManager::getKey(MR_KEY_S))
         player_pos.z -= player_speed * deltaTime;
-    if (MR::InputManager::getKey(GLFW_KEY_A))
+    if (MR::InputManager::getKey(MR_KEY_A))
         player_pos.x -= player_speed * deltaTime;
-    if (MR::InputManager::getKey(GLFW_KEY_D))
+    if (MR::InputManager::getKey(MR_KEY_D))
         player_pos.x += player_speed * deltaTime;
-    if (MR::InputManager::getKey(GLFW_KEY_Q))
+    if (MR::InputManager::getKey(MR_KEY_Q))
         player_pos.y -= player_speed * deltaTime;
-    if (MR::InputManager::getKey(GLFW_KEY_E))
+    if (MR::InputManager::getKey(MR_KEY_E))
         player_pos.y += player_speed * deltaTime;
 }
 

@@ -1,1 +1,1 @@
-g++ -static -static-libgcc -static-libstdc++ -std=c++17 src/main.cpp external/lib/glad.a lib/Mantaray.a -Iinclude -Iexternal/include -Lexternal/lib -lglfw3 -lgdi32 -o bin/build.exe
+g++ -static -static-libgcc -static-libstdc++ -std=c++11 src/main.cpp external/lib/glad.a lib/Mantaray.a -Iinclude -Iexternal/include -Lexternal/lib -lglfw3 -lgdi32 -o bin/build.exe
