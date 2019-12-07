@@ -34,7 +34,7 @@ void Mesh::addVertice(Vector2f v) {
 }
 
 void Mesh::addVertices(Vector2f v[], unsigned int vc) {
-    for (int i = 0; i < vc; i++) {
+    for (unsigned int i = 0; i < vc; i++) {
         addVertice(v[i]);
     }
 }
