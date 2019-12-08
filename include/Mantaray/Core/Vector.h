@@ -8,23 +8,22 @@ class Vector2f {
             this->x = x;
             this->y = y;
         }
-        float x, y = 0.0f;
 
         bool operator==(Vector2f b) {
             return (this->x == b.x && this->y == b.y);
         }
-
         Vector2f operator+(Vector2f b) {
             return Vector2f(this->x + b.x, this->y + b.y);
         }
-
         Vector2f operator-(Vector2f b) {
             return Vector2f(this->x - b.x, this->y - b.y);
         }
-
         Vector2f operator*(float b) {
             return Vector2f(this->x * b, this->y * b);
         }
+
+    public:
+        float x, y = 0.0f;
 };
 
 class Vector2d {
@@ -34,19 +33,31 @@ class Vector2d {
             this->x = x;
             this->y = y;
         }
-        double x, y = 0.0f;
 
         bool operator==(Vector2d b) {
             return (this->x == b.x && this->y == b.y);
         }
-
         Vector2d operator+(Vector2d b) {
             return Vector2d(this->x + b.x, this->y + b.y);
         }
-
         Vector2d operator-(Vector2d b) {
             return Vector2d(this->x - b.x, this->y - b.y);
         }
+
+    public:
+        double x, y = 0.0f;
+};
+
+class Vector2i {
+    public:
+        Vector2i() {}
+        Vector2i(int x, int y) {
+            this->x = x;
+            this->y = y;
+        }
+
+    public:
+        int x, y = 0;
 };
 
 class Vector3f {
@@ -57,24 +68,19 @@ class Vector3f {
             this->y = y;
             this->z = z;
         }
-        float x, y, z = 0.0f;
 
         bool operator==(Vector3f b) {
             return (this->x == b.x && this->y == b.y && this->z == b.z);
         }
-
         Vector3f operator+(Vector3f b) {
             return Vector3f(this->x + b.x, this->y + b.y, this->z + b.z);
         }
-
         Vector3f operator-(Vector3f b) {
             return Vector3f(this->x - b.x, this->y - b.y, this->z - b.z);
         }
-
         Vector3f operator*(float b) {
             return Vector3f(this->x * b, this->y * b, this->y * b);
         }
-
         //void rotateAroundX(float angle) {
         //    this->x = this->x;
         //    this->y = this->y * cos(angle) - this->z * sin(angle);
@@ -86,5 +92,8 @@ class Vector3f {
         //    this->y = this->y;
         //    this->z = -this->x * sin(angle) + this->z * cos(angle);
         //}
+    
+    public:
+        float x, y, z = 0.0f;
 };
 }
