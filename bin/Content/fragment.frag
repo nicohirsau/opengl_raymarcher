@@ -141,10 +141,10 @@ void main() {
         float dst = getSceneDistance(pos);
         
         if (dst <= 0.001) {
-            //vec3 d = normalize(sphere_pos - pos);
-            //float u = 0.5 + atan(d.z, d.x) / M_PI + u_time * 0.2;
-            //float v = 1.0 - (0.5 - asin(d.y) / M_PI);
-            //color = texture(u_texture0, vec2(u, v)) * vec4(1.0);
+            vec3 d = normalize(sphere_pos - pos);
+            float u = 0.5 + atan(d.z, d.x) / M_PI + u_time * 0.2;
+            float v = 1.0 - (0.5 - asin(d.y) / M_PI);
+            color = texture(u_texture0, vec2(u, v)) * vec4(1.0);
             color *= (1 - steps / 40.0);// * vec4(sin(pos.x), cos(pos.y), cos(pos.z), 1.0);
             color.w = 1.0;
             hit = true;

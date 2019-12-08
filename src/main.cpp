@@ -12,6 +12,8 @@
 #include <Windows.h>
 
 #include "Mantaray/Graphics/Shader.h"
+#include "Mantaray/Graphics/Image.h"
+#include "Mantaray/Graphics/Texture.h"
 #include "Mantaray/Core/FileSystem.h"
 #include "Mantaray/Core/Logger.h"
 #include "Mantaray/Core/Vector.h"
@@ -84,20 +86,9 @@ int main()
     screenMesh.uploadMeshData();
 
     logger.Log("Loading Texture...");
-    int width, height, nrChannels;
-    std::string image_path = MR::FileSystem::getWorkingDirectory() + "Content/earth.png";
-    unsigned char *data;
-    MR::FileSystem::loadImage("Content/earth.png", data, width, height, nrChannels);
     
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    MR::FileSystem::unloadImage(data);
+    MR::Texture tex = MR::Texture("Content/earth.png");
+    raymarchingShader.setTexture(0, tex);
 
     float elapsed_time = 0.0f; // In seconds
     float delta_time = 0.0f;
@@ -112,9 +103,6 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
-
         screenMesh.draw();  
 
         glfwSwapBuffers(window);
@@ -125,6 +113,7 @@ int main()
 
         raymarchingShader.setUniformVector3f("u_pPos", player_pos);
         raymarchingShader.setUniformVector2f("u_pRot", player_rot);
+        raymarchingShader.setUniformFloat("u_time", elapsed_time);
     }
 
     logger.Log("Shutting down application...");

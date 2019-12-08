@@ -4,6 +4,8 @@
 #include "Mantaray/Core/Vector.h"
 
 namespace MR {
+class Texture;
+
 class Shader {
     public:
         enum ShaderType {
@@ -19,6 +21,7 @@ class Shader {
         void setUniformFloat(std::string uniformName, float value);
         void setUniformVector2f(std::string uniformName, Vector2f value);
         void setUniformVector3f(std::string uniformName, Vector3f value);
+        void setTexture(unsigned int slot, Texture &texture);
 
         static unsigned int compileShader(Shader::ShaderType shaderType, const char* source);
         static unsigned int linkShader(unsigned int vertexShader, unsigned int fragmentShader);

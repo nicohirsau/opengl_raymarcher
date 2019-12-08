@@ -1,9 +1,9 @@
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
+#include "Mantaray/Graphics/Shader.h"
+#include "Mantaray/Graphics/Texture.h"
 #include "Mantaray/Core/FileSystem.h"
 #include "Mantaray/Core/Logger.h"
-#include "Mantaray/Graphics/Shader.h"
 
 using namespace MR;
 
@@ -50,6 +50,19 @@ void Shader::setUniformVector2f(std::string uniformName, Vector2f value) {
 void Shader::setUniformVector3f(std::string uniformName, Vector3f value) {
     int uniformLocation = getUniformLocation(uniformName);
     glUniform3f(uniformLocation, value.x, value.y, value.z);    
+}
+
+void Shader::setTexture(unsigned int slot, Texture &texture) {
+    if (slot > 31) {
+        Logger::Log(
+            "Shader", "Texture slot " + std::to_string(slot) + " is over the limit of 31!", 
+            Logger::LOG_WARNING
+        );
+        return;
+    }
+    activate();
+    glActiveTexture(0x84C0 + slot);
+    glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
 }
 
 int Shader::getUniformLocation(std::string uniformName) {
