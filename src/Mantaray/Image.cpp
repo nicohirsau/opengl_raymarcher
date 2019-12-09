@@ -10,8 +10,10 @@ Image::Image(std::string pathToImage) {
     loadFromFile(pathToImage);
 }
 
-Image::Image(unsigned char* imageData, int numPixels) {
-    std::copy(imageData, imageData + numPixels, m_ImageData);
+Image::Image(unsigned char* imageData, int width, int height, int nrChannels) {
+    std::copy(imageData, imageData + width * height, m_ImageData);
+    m_Size = Vector2i(width, height);
+    m_NrChannels = nrChannels;
 }
 
 Image::~Image() {
@@ -24,10 +26,8 @@ void Image::loadFromFile(std::string pathToImage) {
 
 void Image::unloadData() {
     FileSystem::unloadImage(m_ImageData);
-}
-
-Texture Image::uploadImageData() {
-    return Texture(m_ImageData, m_Size.x * m_Size.y);
+    m_Size = Vector2i(0, 0);
+    m_NrChannels = 0;
 }
 
 int Image::getWidth() {

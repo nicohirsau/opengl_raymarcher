@@ -10,12 +10,11 @@ class Image {
 
     public:
         Image(std::string pathToImage);
-        Image(unsigned char* imageData, int numPixels);
+        Image(unsigned char* imageData, int width, int height, int nrChannels);
         ~Image();
 
         void loadFromFile(std::string pathToImage);
         void unloadData();
-        Texture uploadImageData();
 
         int getWidth();
         int getHeight();

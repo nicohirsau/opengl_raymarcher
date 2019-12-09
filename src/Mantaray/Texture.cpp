@@ -10,8 +10,8 @@ Texture::Texture(std::string pathToTexture) {
     uploadTextureData();
 }
 
-Texture::Texture(unsigned char* textureData, int numPixels) {
-    m_Image = new Image(textureData, numPixels);
+Texture::Texture(unsigned char* textureData, int width, int height, int nrChannels) {
+    m_Image = new Image(textureData, width, height, nrChannels);
     uploadTextureData();
 }
 

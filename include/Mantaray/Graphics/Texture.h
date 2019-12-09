@@ -6,7 +6,7 @@ class Image;
 class Texture {
     public:
         Texture(std::string pathToTexture);
-        Texture(unsigned char* textureData, int numPixels);
+        Texture(unsigned char* textureData, int width, int height, int nrChannels);
         ~Texture();
 
         unsigned int getTextureID();
