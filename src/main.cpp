@@ -86,7 +86,6 @@ int main()
     screenMesh.uploadMeshData();
 
     logger.Log("Loading Texture...");
-    
     MR::Texture tex = MR::Texture("Content/earth.png");
     raymarchingShader.setTexture(0, tex);
 

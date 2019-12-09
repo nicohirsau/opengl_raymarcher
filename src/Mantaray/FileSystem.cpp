@@ -53,7 +53,3 @@ bool FileSystem::loadImage(std::string path, unsigned char*& data, int& width, i
     }
     return true;
 }
-
-void FileSystem::unloadImage(unsigned char*& data) {
-    stbi_image_free(data);
-}

@@ -9,6 +9,7 @@ class Image {
     friend class Texture;
 
     public:
+        Image();
         Image(std::string pathToImage);
         Image(unsigned char* imageData, int width, int height, int nrChannels);
         ~Image();

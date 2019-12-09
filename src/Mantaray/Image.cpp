@@ -1,10 +1,13 @@
 #include <algorithm>
+#include <cstdlib>
 
 #include "Mantaray/Graphics/Image.h"
 #include "Mantaray/Graphics/Texture.h"
 #include "Mantaray/Core/FileSystem.h"
 
 using namespace MR;
+
+Image::Image() {}
 
 Image::Image(std::string pathToImage) {
     loadFromFile(pathToImage);
@@ -25,7 +28,8 @@ void Image::loadFromFile(std::string pathToImage) {
 }
 
 void Image::unloadData() {
-    FileSystem::unloadImage(m_ImageData);
+    free(m_ImageData);
+    m_ImageData = nullptr;
     m_Size = Vector2i(0, 0);
     m_NrChannels = 0;
 }
