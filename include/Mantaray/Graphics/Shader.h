@@ -18,10 +18,13 @@ class Shader {
         ~Shader();
 
         void activate();
+        void setupForDraw();
+
+        void setUniformInteger(std::string uniformName, int value);
         void setUniformFloat(std::string uniformName, float value);
         void setUniformVector2f(std::string uniformName, Vector2f value);
         void setUniformVector3f(std::string uniformName, Vector3f value);
-        void setTexture(unsigned int slot, Texture &texture);
+        void setTexture(std::string textureUniformName, int slot, Texture &texture);
 
         static unsigned int compileShader(Shader::ShaderType shaderType, const char* source);
         static unsigned int linkShader(unsigned int vertexShader, unsigned int fragmentShader);
@@ -32,5 +35,6 @@ class Shader {
     private:
         unsigned int m_FragmentShaderID, m_VertexShaderID, m_ShaderProgramID;
         std::unordered_map<std::string, int> m_Uniforms = std::unordered_map<std::string, int>();
+        std::unordered_map<int, unsigned int> m_TextureSlots = std::unordered_map<int, unsigned int>();
 };
 }

@@ -37,6 +37,19 @@ void Shader::activate() {
     glUseProgram(m_ShaderProgramID);
 }
 
+void Shader::setupForDraw() {
+    activate();
+    for (auto& texture_slot: m_TextureSlots) {
+        glActiveTexture(0x84C0 + texture_slot.first);
+        glBindTexture(GL_TEXTURE_2D, texture_slot.second);
+    }
+}
+
+void Shader::setUniformInteger(std::string uniformName, int value) {
+    int uniformLocation = getUniformLocation(uniformName);
+    glUniform1i(uniformLocation, value);
+}
+
 void Shader::setUniformFloat(std::string uniformName, float value) {
     int uniformLocation = getUniformLocation(uniformName);
     glUniform1f(uniformLocation, value);
@@ -52,7 +65,7 @@ void Shader::setUniformVector3f(std::string uniformName, Vector3f value) {
     glUniform3f(uniformLocation, value.x, value.y, value.z);    
 }
 
-void Shader::setTexture(unsigned int slot, Texture &texture) {
+void Shader::setTexture(std::string textureUniformName, int slot, Texture &texture) {
     if (slot > 31) {
         Logger::Log(
             "Shader", "Texture slot " + std::to_string(slot) + " is over the limit of 31!", 
@@ -63,6 +76,8 @@ void Shader::setTexture(unsigned int slot, Texture &texture) {
     activate();
     glActiveTexture(0x84C0 + slot);
     glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
+    setUniformInteger(textureUniformName, slot);
+    m_TextureSlots[slot] = texture.getTextureID();
 }
 
 int Shader::getUniformLocation(std::string uniformName) {

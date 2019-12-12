@@ -87,7 +87,7 @@ int main()
 
     logger.Log("Loading Texture...");
     MR::Texture tex = MR::Texture("Content/earth.png");
-    raymarchingShader.setTexture(0, tex);
+    raymarchingShader.setTexture("u_texture0", 0, tex);
 
     float elapsed_time = 0.0f; // In seconds
     float delta_time = 0.0f;
