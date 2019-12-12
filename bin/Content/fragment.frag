@@ -7,10 +7,11 @@ uniform vec2 u_mPos;
 uniform vec3 u_pPos;
 uniform vec2 u_pRot;
 uniform sampler2D u_texture0;
+uniform sampler2D u_texture1;
 
 #define M_PI 3.1415926535897932384626433832795
 
-#define sphere_pos vec3(0.0, 0.0, 0)
+#define sphere_pos vec3(0.0, 0.0, 3)
 
 mat3 rotAxis(float a, vec3 axis) {
     float s=sin(a);
@@ -89,21 +90,48 @@ float opDisplace( float dst, vec3 p )
     return d1+d2;
 }
 
+float opSmoothUnion( float d1, float d2, float k ) {
+    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );
+    return mix( d2, d1, h ) - k*h*(1.0-h); 
+}
+
+float opSmoothSubtraction( float d2, float d1, float k ) {
+    float h = clamp( 0.5 - 0.5*(d2+d1)/k, 0.0, 1.0 );
+    return mix( d2, -d1, h ) + k*h*(1.0-h); 
+}
+
+float opSmoothIntersection( float d1, float d2, float k ) {
+    float h = clamp( 0.5 - 0.5*(d2-d1)/k, 0.0, 1.0 );
+    return mix( d2, d1, h ) + k*h*(1.0-h); 
+}
+
 float getSceneDistance(vec3 pos) {
     pos = vec3(pos.x, pos.y, pos.z);
-    float dst = unionSDF(
-        differenceSDF(sdBox(pos, sphere_pos, vec3(2.3)), sdSphere(pos, sphere_pos, 2.75)), 
-            differenceSDF(
-                differenceSDF(
-                    differenceSDF(
-                        differenceSDF(
-                        sdTorus(pos, sphere_pos, vec2(0.5, 0.3)), 
-                        sdSphere(pos, sphere_pos + vec3(-0.75, 0.0, -0.75), 0.5)
-                    ), sdSphere(pos, sphere_pos + vec3(0.75, 0.0, 0.75), 0.5)
-                ), sdSphere(pos, sphere_pos + vec3(0.75, 0.0, -0.75), 0.5)
-            ), sdSphere(pos, sphere_pos + vec3(-0.75, 0.0, 0.75), 0.5)
-        )
-    );
+    float dst = sdSphere(pos, sphere_pos, 2.75);
+    //unionSDF(
+    //    differenceSDF(
+    //        sdSphere(pos, sphere_pos, 2.75),
+    //        sdBox(pos, sphere_pos, vec3(2.3)) 
+    //    ), 
+    //    
+    //    opSmoothUnion(
+    //        opSmoothUnion(
+    //            opSmoothUnion(
+    //                opSmoothUnion(
+    //                    sdTorus(pos, sphere_pos + vec3(0, 0, 0), vec2(0.5, 0.3)), 
+    //                    sdSphere(pos, sphere_pos + vec3(-0.75, 0.0, -0.75), 0.5),
+    //                    sin(u_time) / 5 + 0.2
+    //                ), 
+    //                sdSphere(pos, sphere_pos + vec3(0.75, 0, 0.75), 0.5),
+    //                sin(u_time) / 5 + 0.2
+    //            ), 
+    //            sdSphere(pos, sphere_pos + vec3(0.75, 0, -0.75), 0.5),
+    //            sin(u_time) / 5 + 0.2
+    //        ), 
+    //        sdSphere(pos, sphere_pos + vec3(-0.75, 0, 0.75), 0.5),
+    //        sin(u_time) / 5 + 0.2
+    //    )
+    //);
     //float dst = differenceSDF(
     //    intersectSDF(
     //        sdBox(pos, sphere_pos, vec3(1)),
@@ -139,11 +167,15 @@ void main() {
         pos = vec3(pos.x, pos.y, pos.z);
         
         float dst = getSceneDistance(pos);
+        vec3 d = normalize(sphere_pos - pos);
+        float u = 0.5 + atan(d.z, d.x) / M_PI + u_time * 0.1;
+        float v = 1.0 - (0.5 - asin(d.y) / M_PI);
+        dst -= texture(u_texture1, vec2(u, v)).x / 5.0;
         
         if (dst <= 0.001) {
-            vec3 d = normalize(sphere_pos - pos);
-            float u = 0.5 + atan(d.z, d.x) / M_PI + u_time * 0.2;
-            float v = 1.0 - (0.5 - asin(d.y) / M_PI);
+            //vec3 d = normalize(sphere_pos - pos);
+            //float u = 0.5 + atan(d.z, d.x) / M_PI + u_time * 0.1;
+            //float v = 1.0 - (0.5 - asin(d.y) / M_PI);
             color = texture(u_texture0, vec2(u, v)) * vec4(1.0);
             color *= (1 - steps / 40.0);// * vec4(sin(pos.x), cos(pos.y), cos(pos.z), 1.0);
             color.w = 1.0;

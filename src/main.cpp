@@ -22,6 +22,8 @@
 #include "Mantaray/Core/InputManager.h"
 #include "Mantaray/Core/KeyCodes.h"
 
+#define PI 3.14159265359f
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window, float deltaTime);
 
@@ -86,11 +88,16 @@ int main()
     screenMesh.uploadMeshData();
 
     logger.Log("Loading Texture...");
+    
     MR::Texture tex = MR::Texture("Content/earth.png");
     raymarchingShader.setTexture("u_texture0", 0, tex);
+    MR::Texture tex1 = MR::Texture("Content/earth_displacement.png");
+    raymarchingShader.setTexture("u_texture1", 1, tex1);
 
     float elapsed_time = 0.0f; // In seconds
     float delta_time = 0.0f;
+
+    
 
     logger.Log("Starting Loop...");
     while (!glfwWindowShouldClose(window))
@@ -102,6 +109,7 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        raymarchingShader.setupForDraw();
         screenMesh.draw();  
 
         glfwSwapBuffers(window);
@@ -144,14 +152,26 @@ void processInput(GLFWwindow *window, float deltaTime)
         lcursor_pos = cursor_pos;
     }
 
+    if (player_rot.x < -PI/2.f)
+        player_rot.x = -PI/2.f;
+    if (player_rot.x > PI/2.f)
+        player_rot.x = PI/2.f;
+
+    MR::Vector3f delta_movement;
     if (MR::InputManager::getKey(MR_KEY_W))
-        player_pos.z += player_speed * deltaTime;
+        delta_movement.z += player_speed * deltaTime;
     if (MR::InputManager::getKey(MR_KEY_S))
-        player_pos.z -= player_speed * deltaTime;
+        delta_movement.z -= player_speed * deltaTime;
     if (MR::InputManager::getKey(MR_KEY_A))
-        player_pos.x -= player_speed * deltaTime;
+        delta_movement.x -= player_speed * deltaTime;
     if (MR::InputManager::getKey(MR_KEY_D))
-        player_pos.x += player_speed * deltaTime;
+        delta_movement.x += player_speed * deltaTime;
+
+    delta_movement.rotateAroundX(player_rot.x);
+    delta_movement.rotateAroundY(player_rot.y);
+
+    player_pos = player_pos + delta_movement;
+
     if (MR::InputManager::getKey(MR_KEY_Q))
         player_pos.y -= player_speed * deltaTime;
     if (MR::InputManager::getKey(MR_KEY_E))
