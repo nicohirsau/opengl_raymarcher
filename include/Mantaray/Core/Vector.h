@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 namespace MR {
 class Vector2f {
     public:
@@ -20,6 +22,27 @@ class Vector2f {
         }
         Vector2f operator*(float b) {
             return Vector2f(this->x * b, this->y * b);
+        }
+
+        void rotate(float angle) {
+            Vector2f intermediate = Vector2f(this->x, this->y);
+		    float const Cos(cos(angle));
+		    float const Sin(sin(angle));
+
+		    this->x = intermediate.x * Cos - intermediate.y * Sin;
+		    this->y = intermediate.x * Sin + intermediate.y * Cos;
+        }
+
+        void rotate(float angle, Vector2f center) {
+            Vector2f intermediate = Vector2f(
+                this->x - center.x, 
+                this->y - center.y
+            );
+		    float const Cos = cos(angle);
+		    float const Sin = sin(angle);
+
+		    this->x = intermediate.x * Cos - intermediate.y * Sin;
+		    this->y = intermediate.x * Sin + intermediate.y * Cos;
         }
 
     public:
@@ -79,19 +102,38 @@ class Vector3f {
             return Vector3f(this->x - b.x, this->y - b.y, this->z - b.z);
         }
         Vector3f operator*(float b) {
-            return Vector3f(this->x * b, this->y * b, this->y * b);
+            return Vector3f(this->x * b, this->y * b, this->z * b);
         }
-        //void rotateAroundX(float angle) {
-        //    this->x = this->x;
-        //    this->y = this->y * cos(angle) - this->z * sin(angle);
-        //    this->z = this->y * sin(angle) + this->z * cos(angle);
-        //}
-//
-        //void rotateAroundY(float angle) {
-        //    this->x = this->x * cos(angle) + this->z * sin(angle);
-        //    this->y = this->y;
-        //    this->z = -this->x * sin(angle) + this->z * cos(angle);
-        //}
+        Vector3f operator*(Vector3f b) {
+            return Vector3f(this->x * b.x, this->y * b.y, this->z * b.z);
+        }
+
+        void rotateAroundX(float angle) {
+            Vector2f intermediate = Vector2f(this->y, this->z);
+		    float const Cos = cos(angle);
+		    float const Sin = sin(angle);
+
+		    this->y = intermediate.x * Cos - intermediate.y * Sin;
+		    this->z = intermediate.x * Sin + intermediate.y * Cos;
+        }
+
+        void rotateAroundY(float angle) {
+            Vector2f intermediate = Vector2f(this->x, this->z);
+		    float const Cos = cos(angle);
+		    float const Sin = sin(angle);
+
+		    this->x =  intermediate.x * Cos + intermediate.y * Sin;
+		    this->z = -intermediate.x * Sin + intermediate.y * Cos;
+        }
+
+        void rotateAroundZ(float angle) {
+            Vector2f intermediate = Vector2f(this->x, this->y);
+		    float const Cos = cos(angle);
+		    float const Sin = sin(angle);
+
+		    this->x = intermediate.x * Cos - intermediate.y * Sin;
+		    this->y = intermediate.x * Sin + intermediate.y * Cos;
+        }
     
     public:
         float x, y, z = 0.0f;
