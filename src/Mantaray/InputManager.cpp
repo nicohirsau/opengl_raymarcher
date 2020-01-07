@@ -6,9 +6,11 @@ using namespace MR;
 GLFWwindow* InputManager::m_WindowHandle = nullptr;
 
 std::vector<int> InputManager::m_WatchedKeys = std::vector<int>();
-std::map<int, float> InputManager::m_WatchedKeysElapsedTime = std::map<int, float>();
-std::map<int, bool> InputManager::m_WatchedKeysDown = std::map<int, bool>();
-std::map<int, bool> InputManager::m_WatchedKeysUp = std::map<int, bool>();
+std::unordered_map<int, float> InputManager::m_WatchedKeysElapsedTime = std::unordered_map<int, float>();
+std::unordered_map<int, bool> InputManager::m_WatchedKeysDown = std::unordered_map<int, bool>();
+std::unordered_map<int, bool> InputManager::m_WatchedKeysUp = std::unordered_map<int, bool>();
+Vector2d InputManager::m_LastMousePosition = Vector2d(0, 0);
+Vector2d InputManager::m_DeltaMousePosition = Vector2d(0, 0);
 
 void InputManager::setWindowHandle(GLFWwindow* windowHandle) {
     InputManager::m_WindowHandle = windowHandle;
@@ -38,6 +40,11 @@ void InputManager::update(float deltaTime) {
             InputManager::m_WatchedKeysDown[keyCode] = false;
         }
     }
+
+    Vector2d currentMousePosition;
+    getMousePosition(currentMousePosition);
+    InputManager::m_DeltaMousePosition = currentMousePosition - InputManager::m_LastMousePosition;
+    getMousePosition(InputManager::m_LastMousePosition); 
 }
 
 void InputManager::addKeyToWatch(int keyCode) {
@@ -62,4 +69,23 @@ bool InputManager::getKeyUp(int keyCode) {
 
 void InputManager::getMousePosition(Vector2d &mousePos) {
     glfwGetCursorPos(InputManager::getWindowHandle(), &mousePos.x, &mousePos.y);
+}
+
+Vector2d InputManager::getMousePosition() {
+    Vector2d mousePos;
+    getMousePosition(mousePos);
+    return mousePos;
+}
+
+void InputManager::getMouseDelta(Vector2d &mouseDelta) {
+    mouseDelta.x = InputManager::m_DeltaMousePosition.x;
+    mouseDelta.y = InputManager::m_DeltaMousePosition.y;
+}
+
+Vector2d InputManager::getMouseDelta() {
+    return InputManager::m_DeltaMousePosition;
+}
+
+bool InputManager::getMouseButton(int mouseButtonCode) {
+    return (glfwGetMouseButton(InputManager::getWindowHandle(), mouseButtonCode) == GLFW_PRESS);
 }

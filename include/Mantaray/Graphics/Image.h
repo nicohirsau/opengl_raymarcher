@@ -1,6 +1,7 @@
 #include <string>
 
 #include "Mantaray/Core/Vector.h"
+#include "Mantaray/Core/Color.h"
 
 namespace MR {
 class Texture;
@@ -16,6 +17,9 @@ class Image {
 
         void loadFromFile(std::string pathToImage);
         void unloadData();
+
+        void setPixel(Vector2u coordinate, unsigned char colorValue);
+        void setPixel(Vector2u coordinate, Color color);
 
         int getWidth();
         int getHeight();

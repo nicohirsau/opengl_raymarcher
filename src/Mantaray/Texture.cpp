@@ -2,6 +2,7 @@
 
 #include "Mantaray/Graphics/Texture.h"
 #include "Mantaray/Graphics/Image.h"
+#include "Mantaray/Core/Logger.h"
 
 using namespace MR;
 
@@ -30,10 +31,26 @@ void Texture::uploadTextureData(unsigned char* textureData, int width, int heigh
     glBindTexture(GL_TEXTURE_2D, m_TextureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, 0x1907 + nrChannels - 3, GL_UNSIGNED_BYTE, textureData);   
+    unsigned int format = 0;
+    switch (nrChannels) {
+        case 1:
+            format = GL_RED;
+            break;
+        case 3:
+            format = GL_RGB;
+            break;
+        case 4:
+            format = GL_RGBA;
+            break;
+        default:
+            Logger::Log("Texture", "Unsupported number of channels", Logger::LOG_WARNING);
+            return;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, format, GL_UNSIGNED_BYTE, textureData);   
 }
 
 int Texture::getWidth() {

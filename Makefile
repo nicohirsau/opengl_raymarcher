@@ -1,13 +1,13 @@
 CC		:= g++
 D_FLAGS := -g -Wall -Wextra
-C_FLAGS := -std=c++17 -static -static-libgcc -static-libstdc++ 
+C_FLAGS := -std=c++11 -static -static-libgcc -static-libstdc++ 
 
 BIN		:= bin
 SRC		:= src
-INCLUDE	:= -Iinclude -Iexternal/include
-LIB		:= -Lexternal/lib
+INCLUDE	:= -iquote include -I external/include
+LIB		:= -L external/lib -L lib
 
-LIBRARIES	:= -lglfw3 -lgdi32 -lglad
+LIBRARIES	:= -lglfw3 -lgdi32 -lglad -lmantaray
 
 EXECUTABLE_NAME := build
 ifeq ($(OS),Windows_NT)
@@ -24,5 +24,5 @@ clean:
 run: all
 	./$(BIN)/$(EXECUTABLE)
 
-$(BIN)/$(EXECUTABLE): $(SRC)/*.cpp $(SRC)/Mantaray/*.cpp
+$(BIN)/$(EXECUTABLE): $(SRC)/*.cpp
 	$(CC) $(D_FLAGS) $(C_FLAGS) $(INCLUDE) $(LIB) $^ -o $@ $(LIBRARIES)

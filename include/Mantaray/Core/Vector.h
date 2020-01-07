@@ -46,7 +46,8 @@ class Vector2f {
         }
 
     public:
-        float x, y = 0.0f;
+        float x = 0.0f;
+        float y = 0.0f;
 };
 
 class Vector2d {
@@ -68,7 +69,8 @@ class Vector2d {
         }
 
     public:
-        double x, y = 0.0f;
+        double x = 0.0;
+        double y = 0.0;
 };
 
 class Vector2i {
@@ -80,7 +82,21 @@ class Vector2i {
         }
 
     public:
-        int x, y = 0;
+        int x = 0;
+        int y = 0;
+};
+
+class Vector2u {
+    public:
+        Vector2u() {}
+        Vector2u(unsigned int x, unsigned int y) {
+            this->x = x;
+            this->y = y;
+        }
+
+    public:
+        unsigned int x = 0u;
+        unsigned int y = 0u;
 };
 
 class Vector3f {
@@ -136,6 +152,8 @@ class Vector3f {
         }
     
     public:
-        float x, y, z = 0.0f;
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
 };
 }
