@@ -1,6 +1,3 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -9,143 +6,105 @@
 #include <algorithm>
 #include <vector>
 
-#include <Windows.h>
-
-#include "Mantaray/Graphics/Shader.h"
-#include "Mantaray/Graphics/Image.h"
-#include "Mantaray/Graphics/Texture.h"
-#include "Mantaray/Core/FileSystem.h"
-#include "Mantaray/Core/Logger.h"
-#include "Mantaray/Core/Vector.h"
-#include "Mantaray/Core/Math.h"
-#include "Mantaray/Core/Mesh.h"
-#include "Mantaray/Core/InputManager.h"
-#include "Mantaray/Core/KeyCodes.h"
+#include <Mantaray/Core/Window.hpp>
+#include <Mantaray/Core/InputManager.hpp>
+#include <Mantaray/Core/KeyCodes.hpp>
+#include <Mantaray/OpenGL/ObjectLibrary.hpp>
+#include <Mantaray/OpenGL/Drawables.hpp>
 
 #define PI 3.14159265359f
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window, float deltaTime);
+using namespace MR;
+
+void processInput(float deltaTime);
 
 unsigned int SCR_WIDTH = 800;
-unsigned int SCR_HEIGHT = 800;
-MR::Vector2d cursor_pos;
-MR::Vector2d lcursor_pos;
-MR::Vector3f player_pos;
-MR::Vector2f player_rot;
+unsigned int SCR_HEIGHT = 500;
+unsigned int SCR_RES_WIDTH = 1600;
+unsigned int SCR_RES_HEIGHT = 1000;
+Vector2d cursor_pos;
+Vector2d lcursor_pos;
+Vector3f player_pos;
+Vector2f player_rot;
 float player_speed = 1.0f;
-MR::Logger logger("Application");
+Logger logger("Application");
+bool ROTATION_LOCKED = false;
 
 int main()
 {
-    logger.Log("Initializing GLFW context...");
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    Window* window = Window::CreateWindow("OpenGL", Vector2u(SCR_WIDTH, SCR_HEIGHT), Vector2u(SCR_RES_WIDTH, SCR_RES_HEIGHT));
+    InputManager::AddKeyToWatch(MR_KEY_ESCAPE);
+    InputManager::AddKeyToWatch(MR_KEY_SPACE);
+    InputManager::AddKeyToWatch(MR_KEY_R);
+    //InputManager::SetCursorMode(InputManager::CursorMode::DISABLED);
 
-    //GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL", NULL, NULL);
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL", NULL, NULL);
-    if (window == NULL)
-    {
-        logger.Log("Failed to create GLFW window", MR::Logger::LOG_ERROR);
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    Shader *raymarchingShader = ObjectLibrary::CreateShader("RaymarchingShader", std::string("Content/vertex.vert"), std::string("Content/fragment.frag"));
+    raymarchingShader->setUniformVector2f("u_Res", MR::Vector2f((float)SCR_WIDTH, (float)SCR_HEIGHT));
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        logger.Log("Failed to initialize GLAD", MR::Logger::LOG_ERROR);
-        return -1;
-    }
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    Texture* tex = ObjectLibrary::CreateTexture("color_texture", "Content/earth.png");
+    Texture* tex1 = ObjectLibrary::CreateTexture("displacement_texture", "Content/earth_displacement.png");
+    raymarchingShader->setTexture("u_texture0", 0, *tex);
+    raymarchingShader->setTexture("u_texture1", 1, *tex1);
 
-    MR::InputManager::setWindowHandle(window);
-    MR::InputManager::addKeyToWatch(MR_KEY_0);
+    VertexArray* defaultVertexArray;
+    ObjectLibrary::FindObject("DefaultVertexArray", defaultVertexArray);
+    Polygon screenPolygon = Polygon(defaultVertexArray);
+    screenPolygon.color = Color(255, 255, 255);
+    screenPolygon.size = Vector2f(SCR_WIDTH, SCR_HEIGHT);
+    screenPolygon.shader = raymarchingShader;
 
-    logger.Log("Creating shaders...");
-    // create shader
-    MR::Shader raymarchingShader = MR::Shader(std::string("Content/vertex.vert"), std::string("Content/fragment.frag"));
-    raymarchingShader.activate();
-
-    logger.Log("Creating Mesh...");
-    // Create triangles
-
-    MR::Mesh screenMesh = MR::Mesh();
-
-    std::vector<MR::Vector2f> vertices {
-        MR::Vector2f(-1.0f, 1.0f),
-        MR::Vector2f(-1.0f, -1.0f),
-        MR::Vector2f(1.0f, 1.0f),
-        MR::Vector2f(1.0f, 1.0f),
-        MR::Vector2f(-1.0f, -1.0f),
-        MR::Vector2f(1.0f, -1.0f),
-    };
-
-    screenMesh.addVertices(vertices);
-    screenMesh.uploadMeshData();
-
-    logger.Log("Loading Texture...");
-    
-    MR::Texture tex = MR::Texture("Content/earth.png");
-    raymarchingShader.setTexture("u_texture0", 0, tex);
-    MR::Texture tex1 = MR::Texture("Content/earth_displacement.png");
-    raymarchingShader.setTexture("u_texture1", 1, tex1);
-
-    float elapsed_time = 0.0f; // In seconds
+    float elapsed_time = 0.0f;
     float delta_time = 0.0f;
 
-    
+    // Warmup frame
+    window->update();
+    InputManager::GetMousePosition(lcursor_pos);
+    InputManager::GetMousePosition(cursor_pos);
 
     logger.Log("Starting Loop...");
-    while (!glfwWindowShouldClose(window))
+    while (!window->getShouldClose())
     {
-        std::clock_t beginFrame = clock();
-        MR::InputManager::update(delta_time);
-        processInput(window, delta_time);
-        
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        raymarchingShader.setupForDraw();
-        screenMesh.draw();  
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-        std::clock_t endFrame = clock();
-        delta_time = (endFrame - beginFrame) / 1000.0f;
+        delta_time = window->update();
         elapsed_time += delta_time;
 
-        raymarchingShader.setUniformVector3f("u_pPos", player_pos);
-        raymarchingShader.setUniformVector2f("u_pRot", player_rot);
-        raymarchingShader.setUniformFloat("u_time", elapsed_time);
+        if (InputManager::GetKeyDown(MR_KEY_ESCAPE))
+            window->setShouldClose(true);
+
+        if (InputManager::GetKeyDown(MR_KEY_R)) {
+            ObjectLibrary::DeleteObject("RaymarchingShader");
+            raymarchingShader = ObjectLibrary::CreateShader("RaymarchingShader", std::string("Content/vertex.vert"), std::string("Content/fragment.frag"));
+        }
+
+        processInput(delta_time);
+
+        window->beginFrame();
+
+        raymarchingShader->setUniformVector3f("u_pPos", player_pos);
+        raymarchingShader->setUniformVector2f("u_pRot", player_rot);
+        raymarchingShader->setUniformFloat("u_time", elapsed_time);
+        raymarchingShader->setUniformVector2f("u_Res", Vector2f(SCR_RES_WIDTH, SCR_RES_HEIGHT));
+        window->draw(screenPolygon);
+
+        window->endFrame();
     }
 
     logger.Log("Shutting down application...");
-    glfwTerminate();
+    delete window;
     return 0;
 }
 
-void processInput(GLFWwindow *window, float deltaTime)
+void processInput(float deltaTime)
 {
-    if (MR::InputManager::getKey(MR_KEY_ESCAPE))
-        glfwSetWindowShouldClose(window, true);
-
-    if (MR::InputManager::getKeyDown(MR_KEY_0)) {
-        int polygonMode;
-        glGetIntegerv(GL_POLYGON_MODE, &polygonMode);
-        if (polygonMode == GL_LINE)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        else if (polygonMode == GL_FILL)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (InputManager::GetKeyDown(MR_KEY_SPACE)) {
+        ROTATION_LOCKED = !ROTATION_LOCKED;
+        InputManager::GetMousePosition(lcursor_pos);
+        InputManager::GetMousePosition(cursor_pos);
     }
 
-    MR::InputManager::getMousePosition(cursor_pos);
-    if (!(cursor_pos == lcursor_pos)) {
-        MR::Vector2d delta_mPos = cursor_pos - lcursor_pos;
-        player_rot = player_rot + MR::Vector2f(
+    InputManager::GetMousePosition(cursor_pos);
+    if (!(cursor_pos == lcursor_pos) && !ROTATION_LOCKED) {
+        Vector2d delta_mPos = cursor_pos - lcursor_pos;
+        player_rot = player_rot + Vector2f(
             delta_mPos.y,
             delta_mPos.x
         ) * 0.1f * deltaTime;
@@ -157,14 +116,14 @@ void processInput(GLFWwindow *window, float deltaTime)
     if (player_rot.x > PI/2.f)
         player_rot.x = PI/2.f;
 
-    MR::Vector3f delta_movement;
-    if (MR::InputManager::getKey(MR_KEY_W))
+    Vector3f delta_movement;
+    if (InputManager::GetKey(MR_KEY_W))
         delta_movement.z += player_speed * deltaTime;
-    if (MR::InputManager::getKey(MR_KEY_S))
+    if (InputManager::GetKey(MR_KEY_S))
         delta_movement.z -= player_speed * deltaTime;
-    if (MR::InputManager::getKey(MR_KEY_A))
+    if (InputManager::GetKey(MR_KEY_A))
         delta_movement.x -= player_speed * deltaTime;
-    if (MR::InputManager::getKey(MR_KEY_D))
+    if (InputManager::GetKey(MR_KEY_D))
         delta_movement.x += player_speed * deltaTime;
 
     delta_movement.rotateAroundX(player_rot.x);
@@ -172,16 +131,8 @@ void processInput(GLFWwindow *window, float deltaTime)
 
     player_pos = player_pos + delta_movement;
 
-    if (MR::InputManager::getKey(MR_KEY_Q))
+    if (InputManager::GetKey(MR_KEY_Q))
         player_pos.y -= player_speed * deltaTime;
-    if (MR::InputManager::getKey(MR_KEY_E))
+    if (InputManager::GetKey(MR_KEY_E))
         player_pos.y += player_speed * deltaTime;
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    SCR_WIDTH = width;
-    SCR_HEIGHT = height;
-
-    glViewport(0, 0, width, height);
 }

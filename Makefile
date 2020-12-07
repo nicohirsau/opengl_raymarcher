@@ -1,19 +1,20 @@
 CC		:= g++
 D_FLAGS := -g -Wall -Wextra
-C_FLAGS := -std=c++11 -static -static-libgcc -static-libstdc++ 
+C_FLAGS := -std=c++11
 
 BIN		:= bin
 SRC		:= src
 INCLUDE	:= -iquote include -I external/include
-LIB		:= -L external/lib -L lib
-
-LIBRARIES	:= -lglfw3 -lgdi32 -lglad -lmantaray
 
 EXECUTABLE_NAME := build
 ifeq ($(OS),Windows_NT)
 EXECUTABLE	:= $(EXECUTABLE_NAME).exe
+LIB		:= -L external/lib/windows
+LIBRARIES	:= -lmantaray -lglfw3 -lgdi32
 else
 EXECUTABLE	:= $(EXECUTABLE_NAME)
+LIB		:= -L external/lib/linux
+LIBRARIES	:= -lmantaray -lglfw3 -lrt -lm -ldl -lX11 -lpthread -lxcb -lXau -lXdmcp
 endif
 
 all: $(BIN)/$(EXECUTABLE)
@@ -25,4 +26,4 @@ run: all
 	./$(BIN)/$(EXECUTABLE)
 
 $(BIN)/$(EXECUTABLE): $(SRC)/*.cpp
-	$(CC) $(D_FLAGS) $(C_FLAGS) $(INCLUDE) $(LIB) $^ -o $@ $(LIBRARIES)
+	$(CC) $(D_FLAGS) $(C_FLAGS) $(INCLUDE) $^ $(LIB) $(LIBRARIES) -o $@

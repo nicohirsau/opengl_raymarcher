@@ -6,8 +6,10 @@ uniform float u_time;
 uniform vec2 u_mPos;
 uniform vec3 u_pPos;
 uniform vec2 u_pRot;
+uniform vec2 u_Res;
 uniform sampler2D u_texture0;
 uniform sampler2D u_texture1;
+uniform vec4 u_color;
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -105,49 +107,46 @@ float opSmoothIntersection( float d1, float d2, float k ) {
     return mix( d2, d1, h ) + k*h*(1.0-h); 
 }
 
+float lerp(float a, float b, float p) {
+    return a + p * (b - a);
+}
+
 float getSceneDistance(vec3 pos) {
-    pos = vec3(pos.x, pos.y, pos.z);
-    float dst = sdSphere(pos, sphere_pos, 2.75);
-    //unionSDF(
-    //    differenceSDF(
-    //        sdSphere(pos, sphere_pos, 2.75),
-    //        sdBox(pos, sphere_pos, vec3(2.3)) 
-    //    ), 
-    //    
-    //    opSmoothUnion(
-    //        opSmoothUnion(
-    //            opSmoothUnion(
-    //                opSmoothUnion(
-    //                    sdTorus(pos, sphere_pos + vec3(0, 0, 0), vec2(0.5, 0.3)), 
-    //                    sdSphere(pos, sphere_pos + vec3(-0.75, 0.0, -0.75), 0.5),
-    //                    sin(u_time) / 5 + 0.2
-    //                ), 
-    //                sdSphere(pos, sphere_pos + vec3(0.75, 0, 0.75), 0.5),
-    //                sin(u_time) / 5 + 0.2
-    //            ), 
-    //            sdSphere(pos, sphere_pos + vec3(0.75, 0, -0.75), 0.5),
-    //            sin(u_time) / 5 + 0.2
-    //        ), 
-    //        sdSphere(pos, sphere_pos + vec3(-0.75, 0, 0.75), 0.5),
-    //        sin(u_time) / 5 + 0.2
-    //    )
-    //);
-    //float dst = differenceSDF(
-    //    intersectSDF(
-    //        sdBox(pos, sphere_pos, vec3(1)),
-    //        sdSphere(pos, sphere_pos, 1.25)
-    //    ),
-    //    sdCappedCylinder(pos, sphere_pos, 0.5, 2)
-    //);
+    float dst = unionSDF(
+        differenceSDF(
+            sdSphere(pos, sphere_pos, 2.75),
+            sdBox(pos, sphere_pos, vec3(2.3)) 
+        ), 
+        
+        opSmoothUnion(
+            opSmoothUnion(
+                opSmoothUnion(
+                    opSmoothUnion(
+                        sdTorus(pos, sphere_pos + vec3(0, 0, 0), vec2(0.5, 0.3)), 
+                        sdSphere(pos, sphere_pos + vec3(-0.75, 0.0, -0.75), 0.5),
+                        sin(u_time) + 1
+                    ), 
+                    sdSphere(pos, sphere_pos + vec3(0.75, 0, 0.75), 0.5),
+                    sin(u_time) + 1
+                ), 
+                sdSphere(pos, sphere_pos + vec3(0.75, 0, -0.75), 0.5),
+                sin(u_time) + 1
+            ), 
+            sdSphere(pos, sphere_pos + vec3(-0.75, 0, 0.75), 0.5),
+            sin(u_time) + 1
+        )
+    );
     return dst;
 }
 
 void main() {
+    
     vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
     vec3 pos = u_pPos;
+    float widthToHeight = u_Res.y / u_Res.x;
     vec3 dir = normalize(vec3(
-        TexCoord.x / 2.0,
-        TexCoord.y / 2.0,
+        lerp(-0.7, 0.7, TexCoord.x),
+        lerp(-0.7 * widthToHeight, 0.7 * widthToHeight, TexCoord.y),
         1
     ));
 
@@ -168,8 +167,10 @@ void main() {
         
         float dst = getSceneDistance(pos);
         vec3 d = normalize(sphere_pos - pos);
-        float u = 0.5 + atan(d.z, d.x) / M_PI + u_time * 0.1;
-        float v = 1.0 - (0.5 - asin(d.y) / M_PI);
+        float u = (0.5 + atan(d.z, d.x) / M_PI + u_time * 0.1);
+        u = mod(u, 1.0);
+        float v = (0.5 - asin(d.y) / M_PI);
+        v = mod(v, 1.0);
         dst -= texture(u_texture1, vec2(u, v)).x / 5.0;
         
         if (dst <= 0.001) {
@@ -197,6 +198,6 @@ void main() {
             1.0
         );
     }
-
-    FragColor = color;
+    FragColor = color * u_color;
 }
+
